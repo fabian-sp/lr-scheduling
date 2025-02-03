@@ -1,10 +1,11 @@
 # Learning Rate Scheduling
+[![arXiv](https://img.shields.io/badge/arXiv-2501.18965-b31b1b.svg)](https://arxiv.org/abs/2501.18965)
 
 Code for
 
 **The Surprising Agreement Between Convex Optimization Theory and Learning-Rate Scheduling for Large Model Training**
 
-*by Fabian Schaipp, Alexander Hägele, Adrien Taylor, Umut Simsekli, Francis Bach*.
+*by Fabian Schaipp, Alexander Hägele, Adrien Taylor, Umut Simsekli, Francis Bach*. [[link to paper]](https://arxiv.org/pdf/2501.18965)
 
 <p align="center">
     <img src="assets/210m_horizons.png" width="320" />
