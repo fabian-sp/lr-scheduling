@@ -3,6 +3,7 @@ from typing import Union
 from abc import abstractmethod
 
 import copy
+import warnings
 
 ALMOST_ZERO_ALLOWED = -1e-15
 
@@ -250,6 +251,10 @@ class ScheduleBase:
         _alpha[-1] += 1e-10 # avoid warning for divide by zero, has no effect as we have [:T-1]
         _betas = _alpha + etas[0:T]
         _gammas = _sum_eta_grad - _cumsum_eta_grad + _eta_grad
+        if np.any(_gammas < 0):
+            warnings.warn("Possible catastrophic cancellation in subtraction, taking positive part.")
+            _gammas = np.maximum(_gammas, 0.0)
+        
         term3 = (1/2)*((etas[0:T]/_alpha)*((_gammas/_betas)+eps))[:T-1].sum()  
 
         if return_split:
