@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
+from scipy.optimize import curve_fit
 
 from data_utils import load_multiple
-
 from scheduled import CosineSchedule, WSDSchedule
 
 
@@ -15,11 +15,13 @@ cmap_dict = {"wsd": "rocket",
              "cos": "mako"
 }
 
-palettes = dict((sched, sns.color_palette(cmap_dict[sched], 5)) for sched in cmap_dict.keys())
+palettes = dict((sched, sns.color_palette(cmap_dict[sched], 6)) for sched in cmap_dict.keys())
 
-# Specify here what data you want to load
-ALL_LR = [0.0001, 0.0005, 0.001, 0.002]
+#%% Specify here what data you want to load
 
+ALL_LR = [0.0001, 0.0005, 0.001, 0.002, 0.003]
+
+# data also available for 0.2 cooldown
 wsd_config_list = [{"iterations": 50_000, "lr": lr, "scheduler": 'wsd', "decay_type": "linear", "wsd_fract_decay": 0.2} 
                     for lr in ALL_LR]
 
@@ -33,11 +35,9 @@ df, config_df = load_multiple(config_list, data_dir="../data/grad_norm")
 # %% Plot gradient norm
 # %matplotlib qt5
 
-fig, axs = plt.subplots(1, 3, figsize=(12,3))
+fig, axs = plt.subplots(1, 2, figsize=(8,3))
 
 metric = "grad_norm"
-mean_grad_norm = {'cos': dict(), 'wsd': dict()}
-
 rolling_window = (20 if metric in ['train_loss', 'grad_norm'] else 1)
 
 for id in df.id.unique():
@@ -60,10 +60,6 @@ for id in df.id.unique():
     # at cooldown start we have single nan log, should be correct to just use ffill
     ax.plot(this.iter, this.train_lr.ffill(), c=col)
 
-
-    mean_grad_norm[this_sched][this_lr] = np.mean(y)
-
-
 axs[0].grid(which='both', lw=0.2, ls='--')
 axs[0].set_yscale("log")
 # axs[0].set_ylim(2.9, 4)
@@ -72,22 +68,63 @@ axs[0].set_ylabel(metric)
 axs[1].grid(which='both', lw=0.2, ls='--')
 axs[1].set_ylabel("Learning rate")
 
-for sched in ['cos', 'wsd']:
-    axs[2].plot(mean_grad_norm[sched].keys(),
-            mean_grad_norm[sched].values(),
-            c=palettes[sched][3],
-            lw=2,
-            label=sched)
-axs[2].legend()
-axs[2].set_xlabel('base learning rate')
-axs[2].set_ylabel('Mean gradient norm')
-axs[2].grid(which='both', lw=0.2, ls='--')
-
 fig.tight_layout()
 
-# %% Fit grad norm
+#%%  Fit (mean) grad norm as function of lr 
 
-from scipy.optimize import curve_fit
+mean_grad_norm = {'cos': dict(), 'wsd': dict()}
+
+for id in df.id.unique():
+    this = df[df.id == id]
+    this_lr = config_df.loc[id, "lr"]
+    this_sched = config_df.loc[id, "scheduler"]
+    this_no_nan = ~this[metric].isna()
+    y = this[metric][this_no_nan]
+    mean_grad_norm[this_sched][this_lr] = np.mean(y)
+
+
+fig, ax = plt.subplots()
+
+for sched in ['cos', 'wsd']:
+
+    x = np.array(list(mean_grad_norm[sched].keys()))
+    y = np.array(list(mean_grad_norm[sched].values()))
+
+    fun = lambda gamma, B, beta: B/(gamma**beta)
+    res = curve_fit(f=fun,
+                    xdata=x,
+                    ydata=y,
+                    full_output=True,
+                    bounds = ([0, -np.inf],
+                              [np.inf, np.inf]),
+                    maxfev=10000
+    )
+    _x = np.logspace(-4, -2, 100)
+    params = res[0]
+    print(sched, params)
+    _y = fun(_x, *params)
+    
+    ax.plot(x,
+            y,
+            c=palettes[sched][3],
+            lw=0,
+            marker="o",
+            label=sched
+    )
+    ax.plot(_x,
+            _y,
+            c=palettes[sched][3],
+            lw=1.5
+    )
+
+ax.legend()
+ax.set_xlabel('Learning rate')
+ax.set_ylabel('Mean gradient norm')
+ax.set_xscale("log")
+ax.grid(which='both', lw=0.2, ls='--')
+
+# %% Fit grad norm as function of time 
+
 cutoff = 300
 
 fig, axs = plt.subplots(1, 2, figsize=(8,3))
