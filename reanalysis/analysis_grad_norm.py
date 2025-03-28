@@ -125,7 +125,7 @@ ax.grid(which='both', lw=0.2, ls='--')
 
 # %% Fit grad norm as function of time 
 
-cutoff = 300
+cutoff = 0
 
 fig, axs = plt.subplots(1, 2, figsize=(8,3))
 
@@ -138,39 +138,33 @@ for id in df.id.unique():
     this_lr = config_df.loc[id, "lr"]
     this_sched = config_df.loc[id, "scheduler"]
 
-    # fun = lambda t, a, b, alpha, p, q, c, d: a * np.exp(alpha * t) + b * (t**p) + c / this_lr + d
-    fun = lambda t, a, b, alpha, p, q, c, d: a * np.exp(alpha * (t/T * this_lr) ** q) + b * ((t/T)**p) + c / this_lr + d
-    # fun = lambda t, a, b, alpha, p, q, c, d: a*(t**alpha) + b*(t**p) + c
-
+    fun = lambda t, a, b, alpha, p, q, c: a * np.exp(alpha * (t/T * this_lr) ** q) + b * ((t/T)**p) + c
+    
     p0 = {
         "a": 10.0,
         "b": 1.0,
-        "alpha": -10,
+        "alpha": -1,
         "p": 0.0,
-        "q": 0.1,
-        "c": 0.0,
-        # "c": 1.0,
-        "d": 0.0,
+        "q": 1.0,
+        "c": 0.1,
     }
     p0_arr = np.array(list(p0.values()))
 
     lb = {
-        "a": 9.0,
+        "a": 0.0,
         "b": 0.0,
-        "alpha": -20,
+        "alpha": -np.inf,
         "p": 0.0,
         "q": 0.0,
         "c": 0.0,
-        "d": 0.0,
     }
     ub = {
-        "a": 10.0,
+        "a": np.inf,
         "b": 1.0,
-        "alpha": -10,
-        "p": 0.5,
+        "alpha": 0.0,
+        "p": np.inf,
         "q": np.inf,
-        "c": 2,
-        "d": 1.0,
+        "c": np.inf,
     }
 
     try:
@@ -212,3 +206,5 @@ for ax in axs:
     ax.set_yscale('log')
     ax.grid(which='both', lw=0.2, ls='--')    
     ax.legend()
+
+# %%
