@@ -343,3 +343,71 @@ if not ablation:
     )
 
     fig.savefig(os.path.join(plot_dir, 'only_convergence.pdf'))
+
+#%% create plot with bounds for different gamma
+
+if not ablation:
+    D = 1
+    G = 1
+    T = 1_000
+    few_base_lr = [0.01, 0.02, 0.04]
+    
+    few_reds = sns.color_palette("Reds", len(few_base_lr)+2)[2:]
+    few_blues = sns.color_palette("Blues", len(few_base_lr)+2)[2:]
+
+    fig, ax = plt.subplots(1,1, figsize=FIGSIZE11)
+
+    for j, lr in enumerate(few_base_lr):
+        cosine = CosineSchedule(final_lr=0.0, steps=T+1, base_lr=1.0)
+        wsd = WSDSchedule(final_lr=0.0, steps=T+1, cooldown_len=0.2, base_lr=1.0)
+
+        time = np.arange(1, T)
+        for s in [cosine, wsd]:
+            # best_base_lr, _ = compute_optimal_base(s,
+            #                                     G=G,
+            #                                     D=D,
+            #                                     T=T,
+            # )
+            # print(s.name, T, best_base_lr)
+
+            col = few_reds[j] if s.name == 'cosine' else few_blues[j]            
+            s.set_base_lr(lr)
+            rate = [s.compute_rate(grad_norms=G,
+                                    D=D,
+                                    T=t,) for t in time]
+            
+            ax.plot(time, 
+                    rate,
+                    c=col,
+                    lw=2,
+                    alpha=0.9,
+            )
+
+    ax.set_xlim(time[0], )
+    ax.set_ylim(0.02, 0.45)
+    ax.set_ylabel(r'Suboptimality bound')
+    ax.set_xlabel(r'Iteration $t$')
+    ax.grid(axis='both', lw=0.2, ls='--', zorder=0)
+
+    labels = [r"$\tt cosine$" +  "\n" + rf"$\gamma\in [0.01, 0.02, 0.04]$",
+              r"$\tt wsd$"  + "\n" + rf"$\gamma\in [0.01, 0.02, 0.04]$",  
+            ]
+
+    do_fancy_legend(ax,
+                    labels=labels,
+                    color_list=[few_reds, few_blues],
+                    loc='upper right',
+                    fontsize=10,
+                    ncol=1
+    )
+
+
+    fig.subplots_adjust(top=0.980,
+                        bottom=0.164,
+                        left=0.158,
+                        right=0.995,
+                        hspace=0.2,
+                        wspace=0.175
+    )
+
+    fig.savefig(os.path.join(plot_dir, 'multiple_base_lr.pdf'))
