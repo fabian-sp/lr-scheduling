@@ -350,7 +350,7 @@ if not ablation:
     D = 1
     G = 1
     T = 1_000
-    few_base_lr = [0.01, 0.02, 0.04]
+    few_base_lr = [0.014, 0.02, 0.028]
     
     few_reds = sns.color_palette("Reds", len(few_base_lr)+2)[2:]
     few_blues = sns.color_palette("Blues", len(few_base_lr)+2)[2:]
@@ -363,15 +363,16 @@ if not ablation:
 
         time = np.arange(1, T)
         for s in [cosine, wsd]:
-            # best_base_lr, _ = compute_optimal_base(s,
-            #                                     G=G,
-            #                                     D=D,
-            #                                     T=T,
-            # )
-            # print(s.name, T, best_base_lr)
+            best_base_lr, _ = compute_optimal_base(s,
+                                                G=G,
+                                                D=D,
+                                                T=T,
+            )
+            print(s.name, T, best_base_lr)
 
             col = few_reds[j] if s.name == 'cosine' else few_blues[j]            
-            s.set_base_lr(lr)
+            this_lr = lr if s.name == "wsd" else 2*lr
+            s.set_base_lr(this_lr)
             rate = [s.compute_rate(grad_norms=G,
                                     D=D,
                                     T=t,) for t in time]
@@ -389,8 +390,8 @@ if not ablation:
     ax.set_xlabel(r'Iteration $t$')
     ax.grid(axis='both', lw=0.2, ls='--', zorder=0)
 
-    labels = [r"$\tt cosine$" +  "\n" + rf"$\gamma\in [0.01, 0.02, 0.04]$",
-              r"$\tt wsd$"  + "\n" + rf"$\gamma\in [0.01, 0.02, 0.04]$",  
+    labels = [r"$\tt cosine$" +  "\n" + rf"$\gamma\in [0.028, 0.04, 0.056]$",
+              r"$\tt wsd$"  + "\n" + rf"$\gamma\in [0.014, 0.02, 0.028]$",  
             ]
 
     do_fancy_legend(ax,
