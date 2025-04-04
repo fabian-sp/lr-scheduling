@@ -98,56 +98,85 @@ CONFIG_KEYS = ["scheduler", "lr", "iterations", "warmup_steps", "decay_type", "c
 
 def default_config():
     """Fields needed for getting the corresponding file name."""
-    return {'model': '124m', 'scheduler': 'cos', 'lr': 0.001, 'iterations': 25_000, 'decay_type': 'sqrt', 'wsd_fract_decay': 0.2}
+    return {'dataset': 'slimpajama', 'model': '124m', 'scheduler': 'cos', 'lr': 0.001, 'iterations': 25_000, 'decay_type': 'sqrt', 'wsd_fract_decay': 0.2}
 
 def name_mapping(config):
     sched = config['scheduler']
     model = config['model']
+    dataset = config['dataset']
     lr = config['lr']
     iter = config['iterations']
     decay_type = config['decay_type']
     wsd_fract_decay = config['wsd_fract_decay']
 
-    if model.lower() == '124m':
-        if sched == 'cos':
-            name = f"cos-zero-124m_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_cos_warmup300_decay_sqrt_0.0_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-        elif sched == 'wsd':
-            name = f"ann124-{wsd_fract_decay}_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_{decay_type}_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '124m_horizon':
-        if iter == 50_000:
-            name = f"slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"    
+    if dataset == 'slimpajama':
+        if model.lower() == '124m':
+            if sched == 'cos':
+                name = f"cos-zero-124m_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_cos_warmup300_decay_sqrt_0.0_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+            elif sched == 'wsd':
+                name = f"ann124-{wsd_fract_decay}_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_{decay_type}_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '124m_horizon':
+            if iter == 50_000:
+                name = f"slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"    
+            else:
+                name = f"extend-50k_slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '210m':
+            if sched == 'cos':
+                name = f"cos-210m_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_cos_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+            elif sched == 'wsd':
+                name = f"ann210-{wsd_fract_decay}_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '210m_horizon':
+            if iter == 50_000:
+                name = f"slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+            else:
+                name = f"extend-50k_slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
         else:
-            name = f"extend-50k_slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '210m':
-        if sched == 'cos':
-            name = f"cos-210m_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_cos_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-        elif sched == 'wsd':
-            name = f"ann210-{wsd_fract_decay}_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '210m_horizon':
-        if iter == 50_000:
-            name = f"slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-        else:
-            name = f"extend-50k_slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_{sched}_warmup300_decay_linear_{wsd_fract_decay}_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
-    else:
-        raise Exception("No name mapping yet for this config.")
+            raise Exception(f"No name mapping yet for {config}.")
     
+    elif dataset == 'openwebtext':
+        if model.lower() == '60m':
+            nlayers, nhead =  10, 8
+        elif model.lower() == '93m':
+            nlayers, nhead =  12, 10
+        if model.lower() == '166m':
+            nlayers, nhead =  12, 14
+
+        if sched == 'cos':
+            name = f"openwebtext2_llama_norm_nlayers{nlayers}_nhead{nhead}_lr{lr}_sched_cos_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+        elif sched == 'wsd':
+            name = f"ann0.2_openwebtext2_llama_norm_nlayers{nlayers}_nhead{nhead}_lr{lr}_sched_wsd_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
+
+    else:
+        raise Exception(f"No name mapping yet for {config}.")
     return name
 
 def name_mapping_wsd_base(config):
     model = config['model']
+    dataset = config['dataset']
     lr = config['lr']
     
-    if model.lower() == '124m':
-        name = f"stable-124m_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.0_iter50000_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '124m_horizon':
-        name = f"slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.2_iter50000_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '210m':
-        name = f"stable-210m_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_iter40000_bs50x2_ws2_seed0_data_seed1337"
-    elif model.lower() == '210m_horizon':
-        name = f"slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.2_iter50000_bs50x2_ws2_seed0_data_seed1337"
-    else:
-        raise Exception("No name mapping yet for this config.")
-
+    if dataset == 'slimpajama':
+        if model.lower() == '124m':
+            name = f"stable-124m_slimpajama_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.0_iter50000_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '124m_horizon':
+            name = f"slimpajama_chunk1_llama_norm_nlayers12_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.2_iter50000_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '210m':
+            name = f"stable-210m_slimpajama_llama_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_iter40000_bs50x2_ws2_seed0_data_seed1337"
+        elif model.lower() == '210m_horizon':
+            name = f"slimpajama_chunk1_llama_norm_nlayers24_nhead12_lr{lr}_sched_wsd_warmup300_decay_linear_0.2_iter50000_bs50x2_ws2_seed0_data_seed1337"
+        else:
+            raise Exception(f"No name mapping yet for {config}.")
+    elif dataset == 'openwebtext':
+        if model.lower() == '60m':
+            nlayers, nhead, iter =  10, 8, 17_500
+        elif model.lower() == '93m':
+            nlayers, nhead, iter =  12, 10, 25_000
+        elif model.lower() == '166m':
+            nlayers, nhead, iter =  12, 14, 30_000
+        else:
+            raise Exception(f"No name mapping yet for {config}.")
+        
+        name = f"openwebtext2_llama_norm_nlayers{nlayers}_nhead{nhead}_lr{lr}_sched_wsd_warmup300_iter{iter}_bs50x2_ws2_seed0_data_seed1337"
     return name
 
 
