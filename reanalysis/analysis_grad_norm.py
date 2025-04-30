@@ -1,5 +1,4 @@
 import os
-import json
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -9,13 +8,14 @@ from scipy.optimize import curve_fit
 
 from data_utils import load_multiple
 from scheduled import CosineSchedule, WSDSchedule
+from scheduled.utils import FIGSIZE11, FIGSIZE12, set_plot_aesthetics
 
+plot_dir = "../plots/reanalysis/grad_norm/"
+if not os.path.exists(plot_dir):
+    os.mkdir(plot_dir)
 
-cmap_dict = {"wsd": "rocket",
-             "cos": "mako"
-}
-
-palettes = dict((sched, sns.color_palette(cmap_dict[sched], 6)) for sched in cmap_dict.keys())
+# %matplotlib qt5
+set_plot_aesthetics()
 
 #%% Specify here what data you want to load
 
@@ -33,9 +33,18 @@ config_list = cos_config_list + wsd_config_list
 df, config_df = load_multiple(config_list, data_dir="../data/grad_norm")
 
 # %% Plot gradient norm
-# %matplotlib qt5
 
-fig, axs = plt.subplots(1, 2, figsize=(8,3))
+cmap_dict = {"wsd": "rocket",
+             "cos": "mako"
+}
+
+palettes = dict((sched, sns.color_palette(cmap_dict[sched], len(ALL_LR)+2)[1:]) for sched in cmap_dict.keys())
+
+label_dict = {"grad_norm": r"Gradient norm $\|g_t\|$",
+              "train_loss": r"Batch loss $f(x_t, \xi_t)$"
+}
+
+fig, axs = plt.subplots(1, 2, figsize=FIGSIZE12)
 
 metric = "grad_norm"
 rolling_window = (20 if metric in ['train_loss', 'grad_norm'] else 1)
@@ -52,7 +61,8 @@ for id in df.id.unique():
 
     ax = axs[0]
     ax.plot(this.iter[this_no_nan], 
-            y.rolling(rolling_window).mean(), 
+            y.rolling(rolling_window).mean(),
+            lw=1.4,
             c=col
     )
 
@@ -61,45 +71,57 @@ for id in df.id.unique():
     ax.plot(this.iter, this.train_lr.ffill(), c=col)
 
 axs[0].grid(which='both', lw=0.2, ls='--')
-axs[0].set_yscale("log")
-# axs[0].set_ylim(2.9, 4)
-axs[0].set_ylabel(metric)
+if metric == "grad_norm":
+    axs[0].set_yscale("log")
+if metric == "train_loss":
+    axs[0].set_ylim(2.9, 4.1)
+
+axs[0].set_ylabel(label_dict.get(metric, metric))
+axs[0].set_xlabel(r"Iteration $t$")
 
 axs[1].grid(which='both', lw=0.2, ls='--')
-axs[1].set_ylabel("Learning rate")
+axs[1].set_ylabel(r"Learning rate $\gamma \eta_t$")
+axs[1].set_xlabel(r"Iteration $t$")
 
-fig.tight_layout()
+fig.subplots_adjust(top=0.99,
+bottom=0.149,
+left=0.081,
+right=0.993,
+wspace=0.25)
 
-#%%  Fit (mean) grad norm as function of lr 
+fig.savefig(os.path.join(plot_dir, f"log_{metric}.pdf"))
 
+#%%  Fit (mean) grad norm as function of lr
+
+# Collect data
 mean_grad_norm = {'cos': dict(), 'wsd': dict()}
-
 for id in df.id.unique():
     this = df[df.id == id]
     this_lr = config_df.loc[id, "lr"]
     this_sched = config_df.loc[id, "scheduler"]
-    this_no_nan = ~this[metric].isna()
-    y = this[metric][this_no_nan]
+    this_no_nan = ~this["grad_norm"].isna()
+    y = this["grad_norm"][this_no_nan]
     mean_grad_norm[this_sched][this_lr] = np.mean(y)
 
-
-fig, ax = plt.subplots()
-
+# Fit and plot
+fig, ax = plt.subplots(1,1,figsize=FIGSIZE11)
 for sched in ['cos', 'wsd']:
-
     x = np.array(list(mean_grad_norm[sched].keys()))
     y = np.array(list(mean_grad_norm[sched].values()))
 
-    fun = lambda gamma, B, beta: B/(gamma**beta)
+    # move x on log axis
+    x = np.log10(x)
+
+    fun = lambda log_gam, G, B, beta: B * np.exp(-log_gam*beta)
     res = curve_fit(f=fun,
                     xdata=x,
                     ydata=y,
                     full_output=True,
-                    bounds = ([0, -np.inf],
-                              [np.inf, np.inf]),
+                    bounds = ([0, 0, -np.inf],
+                              [np.inf, np.inf, np.inf]),
                     maxfev=10000
     )
-    _x = np.logspace(-4, -2, 100)
+    _x = np.linspace(-4.1, -1.9, 100)
     params = res[0]
     print(sched, params)
     _y = fun(_x, *params)
@@ -109,25 +131,35 @@ for sched in ['cos', 'wsd']:
             c=palettes[sched][3],
             lw=0,
             marker="o",
-            label=sched
     )
+    label = r"$G_t \sim \gamma^{-%.2f} $" % params[-1]
+    label = sched + ", " + label
     ax.plot(_x,
             _y,
             c=palettes[sched][3],
-            lw=1.5
+            lw=2,
+            ls="--",
+            label=label
     )
 
 ax.legend()
-ax.set_xlabel('Learning rate')
+ax.set_xlabel(r'Base LR $\log_{10}(\gamma)$')
 ax.set_ylabel('Mean gradient norm')
-ax.set_xscale("log")
 ax.grid(which='both', lw=0.2, ls='--')
+
+fig.subplots_adjust(top=0.985,
+bottom=0.165,
+left=0.14,
+right=0.99)
+
+fig.savefig(os.path.join(plot_dir, f"grad_norm_scaling.pdf"))
 
 # %% Fit grad norm as function of time 
 
 cutoff = 0
 
 fig, axs = plt.subplots(1, 2, figsize=(8,3))
+LR_FILTER = [0.0001, 0.0005, 0.001, 0.002]
 
 for id in df.id.unique():
     this = df[(df.id == id) & (df.iter > cutoff)]
@@ -137,6 +169,9 @@ for id in df.id.unique():
     T = time.max()
     this_lr = config_df.loc[id, "lr"]
     this_sched = config_df.loc[id, "scheduler"]
+
+    if this_lr not in LR_FILTER:
+        continue
 
     fun = lambda t, a, b, alpha, p, q, c: a * np.exp(alpha * (t/T * this_lr) ** q) + b * ((t/T)**p) + c
     
@@ -187,24 +222,36 @@ for id in df.id.unique():
                 target,
                 c=col,
                 ls='-',
-                lw=0.4
+                lw=0.3
         )
 
         pred = fun(time, *params.values())
+        label = this_sched + ", $\gamma$ = %.0e" % this_lr
         ax.plot(time,
                 pred,
                 c=col,
                 ls='-',
                 lw=2,
-                label=f"{this_sched}-{this_lr}"
+                label=label
         )
     except:
         print(f"No successful fit for {id}")
 
-
 for ax in axs:
     ax.set_yscale('log')
+    ax.set_xlabel(r"Iteration $t$")
     ax.grid(which='both', lw=0.2, ls='--')    
-    ax.legend()
+    ax.legend(loc="upper right")
+
+axs[0].set_ylabel(r"Gradient norm $\|g_t\|$")
+
+fig.subplots_adjust(top=0.99,
+bottom=0.155,
+left=0.085,
+right=0.99,
+hspace=0.2,
+wspace=0.2)
+
+fig.savefig(os.path.join(plot_dir, f"grad_norm_fit.pdf"))
 
 # %%
