@@ -254,4 +254,38 @@ wspace=0.2)
 
 fig.savefig(os.path.join(plot_dir, f"grad_norm_fit.pdf"))
 
+# %% Scatter plot lr vs grad_norm
+
+fig, ax = plt.subplots(1, 1, figsize=FIGSIZE11)
+
+this = df[~df.grad_norm.isna()]
+
+# is -1 for wsd, 1 for cos
+ix_wsd = np.array([2*int("cos" in _id) -1 for _id in this.id])
+
+x = this.train_lr * ix_wsd
+# x = this.train_lr
+
+
+ax.scatter(x,
+           this.grad_norm,
+           #c="k",
+           c=this.iter/ 50_000,
+           cmap="coolwarm",
+           s=1,
+           alpha=0.3
+)
+
+ax.set_xlabel(r'Learning rate')
+ax.set_ylabel('Gradient norm')
+ax.set_yscale("log")
+ax.grid(which='both', lw=0.2, ls='--')
+
+fig.subplots_adjust(top=0.985,
+bottom=0.165,
+left=0.165,
+right=0.99)
+
+fig.savefig(os.path.join(plot_dir, f"grad_norm_scatter.pdf"))
+
 # %%
