@@ -22,11 +22,11 @@ set_plot_aesthetics()
 ALL_LR = [0.0001, 0.0005, 0.001, 0.002, 0.003]
 
 # data also available for 0.2 cooldown
-wsd_config_list = [{"iterations": 50_000, "lr": lr, "scheduler": 'wsd', "decay_type": "linear", "wsd_fract_decay": 0.2} 
-                    for lr in ALL_LR]
+wsd_config_list = [{"iterations": T, "lr": lr, "scheduler": 'wsd', "decay_type": "linear", "wsd_fract_decay": 0.2} 
+                    for lr in ALL_LR for T in [50_000]]
 
-cos_config_list = [{"iterations": 50_000, "lr": lr, "scheduler": 'cos'} 
-                    for lr in ALL_LR]
+cos_config_list = [{"iterations": T, "lr": lr, "scheduler": 'cos'} 
+                    for lr in ALL_LR for T in [50_000]]
 
 config_list = cos_config_list + wsd_config_list
 
@@ -43,7 +43,7 @@ palettes = dict((sched, sns.color_palette(cmap_dict[sched], len(ALL_LR)+2)[1:]) 
 label_dict = {"grad_norm": r"Gradient norm $\|g_t\|$",
               "train_loss": r"Batch loss $f(x_t, \xi_t)$"
 }
-
+len(config_df)
 fig, axs = plt.subplots(1, 2, figsize=FIGSIZE12)
 
 metric = "grad_norm"
@@ -89,7 +89,7 @@ left=0.081,
 right=0.993,
 wspace=0.25)
 
-fig.savefig(os.path.join(plot_dir, f"log_{metric}.pdf"))
+# fig.savefig(os.path.join(plot_dir, f"log_{metric}.pdf"))
 
 #%%  Fit (mean) grad norm as function of lr
 
@@ -256,33 +256,39 @@ fig.savefig(os.path.join(plot_dir, f"grad_norm_fit.pdf"))
 
 # %% Scatter plot lr vs grad_norm
 
+#TODO: use S_t = \sum_k=1^t \eta_k as x-axis
+
 fig, ax = plt.subplots(1, 1, figsize=FIGSIZE11)
 
-this = df[~df.grad_norm.isna()]
 
-# is -1 for wsd, 1 for cos
-ix_wsd = np.array([2*int("cos" in _id) -1 for _id in this.id])
+for id in df.id.unique():
+    this = df[df.id == id].sort_values("iter")
+    this = this[~this["grad_norm"].isna()]
+    this["lr_time"] = this.train_lr.fillna(0).cumsum()
 
-x = this.train_lr * ix_wsd
-# x = this.train_lr
+    # is -1 for wsd, 1 for cos
+    ix_wsd = -1 if "wsd" in this.id.iloc[0] else 1
+
+    # x = this.train_lr * ix_wsd
+    x = this.lr_time * ix_wsd
+
+    ax.scatter(x,
+            this.grad_norm,
+            c=this.iter/ 50_000,
+            cmap="coolwarm",
+            s=1,
+            alpha=0.3
+    )
 
 
-ax.scatter(x,
-           this.grad_norm,
-           #c="k",
-           c=this.iter/ 50_000,
-           cmap="coolwarm",
-           s=1,
-           alpha=0.3
-)
-
-ax.set_xlabel(r'Learning rate')
-ax.set_ylabel('Gradient norm')
+ax.set_xlabel(r'$S_t = \gamma \sum_{k=1}^t \eta_k$')
+ax.set_ylabel(r'Gradient norm $\|g_t\|$')
 ax.set_yscale("log")
 ax.grid(which='both', lw=0.2, ls='--')
+ax.set_xlim(-3,3)
 
 fig.subplots_adjust(top=0.985,
-bottom=0.165,
+bottom=0.17,
 left=0.165,
 right=0.99)
 
