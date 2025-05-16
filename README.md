@@ -1,4 +1,4 @@
-# Learning Rate Scheduling [ICML 2025]
+# Learning Rate Scheduling [[ICML 2025](https://icml.cc/virtual/2025/poster/44759)]
 [![arXiv](https://img.shields.io/badge/arXiv-2501.18965-b31b1b.svg)](https://arxiv.org/abs/2501.18965)
 
 Code for our paper
