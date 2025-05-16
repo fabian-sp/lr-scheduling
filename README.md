@@ -1,9 +1,9 @@
-# Learning Rate Scheduling
+# Learning Rate Scheduling [ICML 2025]
 [![arXiv](https://img.shields.io/badge/arXiv-2501.18965-b31b1b.svg)](https://arxiv.org/abs/2501.18965)
 
-Code for
+Code for our paper
 
-**The Surprising Agreement Between Convex Optimization Theory and Learning-Rate Scheduling for Large Model Training**
+**The Surprising Agreement Between Convex Optimization Theory and Learning-Rate Scheduling for Large Model Training, ICML 2025,**
 
 *by Fabian Schaipp, Alexander Hägele, Adrien Taylor, Umut Simsekli, Francis Bach*. [[link to paper]](https://arxiv.org/pdf/2501.18965)
 
