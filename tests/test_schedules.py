@@ -49,6 +49,18 @@ def test_cosine_basic():
     assert len(S.schedule) == T
     assert S.schedule[-1] == 0.0
 
+def test_cosine_cyclic():
+    T = 501 # assert maxima, so need to have the right discretization
+    S = CosineSchedule(final_lr=0.0,
+                       steps=T,
+                       base_lr=1.0,
+                       cycle_length=1/5
+    )
+
+    assert len(S.schedule) == T
+    assert sum(S.schedule == 1.0) == 3
+    assert S.schedule[-1] == 0.0
+
 def test_final_absolute_lr_wsd():
     T = 115
     S = WSDSchedule(final_lr=3e-3,
