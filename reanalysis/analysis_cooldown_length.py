@@ -305,3 +305,8 @@ fig.subplots_adjust(top=0.940,
                     right=0.872)
 
 fig.savefig(os.path.join(plot_dir, f'best_lr.pdf'))
+
+# %% Store the values of the best LR (to combine with theorettical plot)
+# import json
+# with open('../assets/best_lr.json', 'w') as f:
+#     json.dump(best_lr, f, indent=4)

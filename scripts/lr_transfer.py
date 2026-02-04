@@ -101,7 +101,6 @@ for decay_type in ['linear', 'sqrt']:
                 ls='--',
                 zorder=1
         )
-        
         ax.scatter(x,
                    y1-y,
                    color=cpal[j],
@@ -136,3 +135,63 @@ for decay_type in ['linear', 'sqrt']:
     )
     
     fig.savefig(os.path.join(plot_dir, f'cooldown_fit_gamma_star_{decay_type}.pdf'))
+
+#%% Combine theoretical and empirical curve in one plot
+import json
+
+with open("../assets/best_lr.json", "r") as f:
+    empirical_best_lr = json.load(f)
+
+# %%
+
+plot_both = False
+
+fig, ax = plt.subplots(figsize=FIGSIZE11)
+ax.grid(axis='both', lw=0.2, ls='--', zorder=0)
+
+# Plot empirical curves
+if plot_both:
+    ax.plot(
+        [float(cd) for cd in empirical_best_lr.keys()],
+        [np.log(empirical_best_lr["0.994"] / lr) for _, lr in empirical_best_lr.items()],
+        ls = "-",
+        lw=2.0,
+        c="k",
+        marker="o",
+        zorder=2,
+        label="Empirical"
+    )
+
+# Plot theoretical curve
+T = max(all_T)
+y = np.log(np.array([v[0] for v in rates["linear"][T].values()]))
+y1 = np.log(rates["linear"][T][1][0])
+ax.plot(
+    list(rates["linear"][T].keys()),
+    y1 - y,
+    c="steelblue",
+    lw=2.5,
+    ls='--',
+    zorder=1,
+    label="Theoretical"
+)
+
+ax.tick_params(direction='in', which='both')
+ax.set_yticks(np.linspace(0,2,21), [], minor=True)
+
+ax.set_xlim(0, 1.02)
+ax.set_ylim(-5e-2, 1.75)
+ax.set_xlabel(r'Cooldown fraction $c$')
+ax.set_ylabel(r'$\ln{\gamma^\star(1)} - \ln{\gamma^\star(c)}$')
+
+ax.legend(loc="upper right", fontsize=14)
+
+fig.subplots_adjust(
+    top=0.985,
+    bottom=0.15,
+    left=0.13,
+    right=0.975,
+)
+
+fname = 'theoretical_and_empirical.pdf' if plot_both else 'theoretical_only.pdf'
+fig.savefig(os.path.join(plot_dir, fname))
